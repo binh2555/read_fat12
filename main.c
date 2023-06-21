@@ -6,18 +6,20 @@ int main(void)
 	const bootSectorInfor bootSectorInformation = getInformationBootSector();
 	const uint32_t numOfEntry = bootSectorInformation.numOfRootDirectoryEntries;
 	const uint32_t NumOfFatEntry = (bootSectorInformation.numOfSecPerFAT * SIZE_PER_SECTOR * EIGHT_BIT) / BIT_PER_ENTRY_FAT;
-	directoryEntrypointReal entryPoint[numOfEntry];
+	directoryEntrypointReal rootEntryPoint[numOfEntry];
 	uint16_t FatEntry[NumOfFatEntry];
 	managerLinkedList manager = {NULL, NULL, 0};
 
     memset(FatEntry, 0, NumOfFatEntry);
 
 
-	createRootDirectory(entryPoint, numOfEntry, &bootSectorInformation);
+	createRootDirectory(rootEntryPoint, numOfEntry, &bootSectorInformation);
 	createFatTable(FatEntry, NumOfFatEntry, &bootSectorInformation);
 	//createStackDirection(&manager, entryPoint);
 
-	browserRootDirectory(entryPoint, numOfEntry);
+	browserRootDirectory(rootEntryPoint, numOfEntry);
+
+	browserSubDirectoy(&rootEntryPoint[10], &FatEntry, &bootSectorInformation);
 
 	printf("\noke");
 

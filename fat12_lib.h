@@ -3,17 +3,35 @@
 
 #include "hal.h"
 
-#define SIZE_OF_OEM          (8U)
-#define SIZE_OF_SIG          (2U)
-#define SIZE_OF_TEMP_ARR     (3U)
-#define EIGHT_BIT            (8U)
-#define BOOT_SETOR_BEGIN     (0U)
-#define BYTE_PER_ENTRY       (32U)
-#define BIT_PER_ENTRY_FAT    (12U)
-#define MASK_DIRECTORY       (0x10U)
-#define LONG_NAME_FILE       (0x0fU)
-#define IS_RESUM             (1U)
-#define IS_STOP              (0U)
+#define SIZE_OF_OEM                (8U)
+#define SIZE_OF_SIG                (2U)
+#define SIZE_OF_TEMP_ARR           (3U)
+#define EIGHT_BIT                  (8U)
+#define BOOT_SETOR_BEGIN           (0U)
+#define BYTE_PER_ENTRY             (32U)
+#define BIT_PER_ENTRY_FAT          (12U)
+#define MASK_DIRECTORY             (0x10U)
+#define LONG_NAME_FILE             (0x0fU)
+#define IS_RESUM                   (1U)
+#define IS_STOP                    (0U)
+
+#define SHIFT_DAY                  (0U)
+#define MASK_DAY                   (0x001fU)
+#define SHIFT_MONTH                (5U)
+#define MASK_MONTH                 (0x000fU)
+#define SHIFT_YEAR                 (9U)
+#define MASK_YEAR                  (0xffff)
+#define REFERENCE_YEAR             (1980U)
+
+#define SHIFT_SECONDS                  (0U)
+#define MASK_SECONDS                   (0x001fU)
+#define SHIFT_MINUTES                  (5U)
+#define MASK_MINUTES                   (0x003fU)
+#define SHIFT_HOUR                     (11U)
+#define MASK_HOUR                      (0xffff)
+
+#define DATEPOSITION                   (14U)
+
 
 
 typedef union{
@@ -88,7 +106,7 @@ typedef struct{
 }directoryEntrypointReal;
 
 struct Node{
-    directoryEntrypointReal* data;
+    directoryEntrypointReal data;
     struct Node* next;
 };
 typedef struct Node stackNode;
@@ -106,6 +124,8 @@ void strcopy2(const uint8_t* str, uint8_t* storeStr,uint32_t length, uint32_t po
 void createRootDirectory(directoryEntrypointReal* directoryEntry, uint32_t numOfEntryPoint, const bootSectorInfor* FatInfor);
 void createFatTable(uint16_t* FatEntry, uint32_t numOfFatEntry, const bootSectorInfor* FatInfor);
 
-void browserSubdirectoy(directoryEntrypointReal* directoryEntry,const uint16_t* fatEntry, const bootSectorInfor* bootSectorInformation);
+void browserSubDirectoy(directoryEntrypointReal* directoryEntry,const uint16_t* fatEntry, const bootSectorInfor* bootSectorInformation);
+void showContentOfFile(const directoryEntrypointReal* thisFileEntry,const bootSectorInfor* bootSectorInformation);
+void pushStack(managerLinkedList* manager, directoryEntrypointReal* thisDirEntry);
 
 #endif    /* _FAT12_LIB_H_ */
