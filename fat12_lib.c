@@ -1,6 +1,7 @@
 #include "fat12_lib.h"
 
-static uint16_t convertStringToIntLittleEdian();
+static uint16_t convertStringToInt16BitLittleEdian(const uint8_t* str, const uint32_t length);
+static uint32_t convertStringToInt32BitLittleEdian(const uint8_t* str, const uint32_t length);
 static uint16_t convertHighEntry(const uint8_t* buff);
 static uint16_t convertLowEntry(const uint8_t* buff);
 static void printfNameOfFile(const uint8_t* str);
@@ -26,37 +27,34 @@ bootSectorInfor getInformationBootSector(void)
     else
     {
         strcopy(tempBootSector.feild.OEMName, returnBootSector.OEM, sizeof(returnBootSector.OEM));
-
         strcopy(tempBootSector.feild.Signature, returnBootSector.Signature, sizeof(returnBootSector.Signature));
 
-        returnBootSector.bytePerSec = convertStringToIntLittleEdian(tempBootSector.feild.numOfBytePerSec,\
+        returnBootSector.bytePerSec = convertStringToInt16BitLittleEdian(tempBootSector.feild.numOfBytePerSec,\
         sizeof(tempBootSector.feild.numOfBytePerSec));
 
-        returnBootSector.secPerClus = convertStringToIntLittleEdian(tempBootSector.feild.numOfSecPerCluster,\
+        returnBootSector.secPerClus = convertStringToInt16BitLittleEdian(tempBootSector.feild.numOfSecPerCluster,\
         sizeof(tempBootSector.feild.numOfSecPerCluster));
 
-        returnBootSector.numOfReseredSec = convertStringToIntLittleEdian(tempBootSector.feild.numOfReservedSec,\
+        returnBootSector.numOfReseredSec = convertStringToInt16BitLittleEdian(tempBootSector.feild.numOfReservedSec,\
         sizeof(tempBootSector.feild.numOfReservedSec));
 
-        returnBootSector.numOfFatTableCopies = convertStringToIntLittleEdian(tempBootSector.feild.numOfFATCopy,\
+        returnBootSector.numOfFatTableCopies = convertStringToInt16BitLittleEdian(tempBootSector.feild.numOfFATCopy,\
         sizeof(tempBootSector.feild.numOfFATCopy));
 
-        returnBootSector.numOfRootDirectoryEntries = convertStringToIntLittleEdian(tempBootSector.feild.numOfRootDirectoryEntry,\
+        returnBootSector.numOfRootDirectoryEntries = convertStringToInt16BitLittleEdian(tempBootSector.feild.numOfRootDirectoryEntry,\
         sizeof(tempBootSector.feild.numOfRootDirectoryEntry));
 
-        returnBootSector.numOfSecInFile = convertStringToIntLittleEdian(tempBootSector.feild.numOfSecInFilesystem,\
+        returnBootSector.numOfSecInFile = convertStringToInt16BitLittleEdian(tempBootSector.feild.numOfSecInFilesystem,\
         sizeof(tempBootSector.feild.numOfSecInFilesystem));
 
-        returnBootSector.numOfSecPerFAT = convertStringToIntLittleEdian(tempBootSector.feild.numOfSecPerFAT,\
+        returnBootSector.numOfSecPerFAT = convertStringToInt16BitLittleEdian(tempBootSector.feild.numOfSecPerFAT,\
         sizeof(tempBootSector.feild.numOfSecInFilesystem));
 
         returnBootSector.beginingOfFatTable = BOOT_SETOR_BEGIN + returnBootSector.numOfReseredSec;
         returnBootSector.beginingOfRootDirectory = (returnBootSector.numOfSecPerFAT * returnBootSector.numOfFatTableCopies) + 1;
         returnBootSector.beginingOfDataRegion = ((returnBootSector.numOfRootDirectoryEntries * BYTE_PER_ENTRY) / SIZE_PER_SECTOR)\
         + (returnBootSector.numOfFatTableCopies * returnBootSector.numOfSecPerFAT) + (returnBootSector.numOfReseredSec);
-
     }
-
 
     return returnBootSector;
 }
@@ -102,7 +100,6 @@ void createRootDirectory(directoryEntrypointReal* directoryEntry, uint32_t numOf
         HAL_ReadByte(((startPosition * SIZE_PER_SECTOR) + (i * BYTE_PER_ENTRY)), BYTE_PER_ENTRY, tempEntryPoint.entryPointData);
 
         copyDirectoryEntry(tempEntryPoint,&directoryEntry[i]);
-
     }
 }
 
@@ -127,10 +124,10 @@ void browserSubDirectoy(directoryEntrypointReal* directoryEntry,const uint16_t* 
             copyDirectoryEntry(tempDirectoryDisk, &tempDirectoryReal);
             printEntryPoint(&tempDirectoryReal);
         }
-        if ((0x00 == fatEntry[index])\
+        if ((0x00  == fatEntry[index])\
         || ((0xff0 <= fatEntry[index]) && (0xff6 >= fatEntry[index]))\
         || ((0xff8 <= fatEntry[index]) && (0xfff >= fatEntry[index]))\
-        || (0xff7 == fatEntry[index]))
+        || ( 0xff7 == fatEntry[index]))
         {
             stopFlag = IS_STOP;
         }
@@ -148,13 +145,27 @@ void showContentOfFile(const directoryEntrypointReal* thisFileEntry,const bootSe
     uint8_t* buff[sizeOfFile];
 }
 
-static uint16_t convertStringToIntLittleEdian(const uint8_t* str, const uint32_t length)
+static uint16_t convertStringToInt16BitLittleEdian(const uint8_t* str, const uint32_t length)
 {
     uint16_t result = 0;
     int32_t count = length-1;
     while(0 <= count)
     {
-        result = result << EIGHT_BIT;
+        result = result << ONE_BYTE;
+        result |= str[count];
+        count -= 1;
+    }
+
+    return result;
+}
+
+static uint32_t convertStringToInt32BitLittleEdian(const uint8_t* str, const uint32_t length)
+{
+    uint32_t result = 0;
+    int32_t count = length-1;
+    while(0 <= count)
+    {
+        result = result << ONE_BYTE;
         result |= str[count];
         count -= 1;
     }
@@ -167,25 +178,25 @@ static void copyDirectoryEntry(directoryEntrypointDisk tempEntryPoint, directory
     strcopy(tempEntryPoint.feild.nameOfFile, directoryEntry->nameOfFile,\
     sizeof(tempEntryPoint.feild.nameOfFile));
 
-    directoryEntry->attributies = convertStringToIntLittleEdian(tempEntryPoint.feild.attributies,\
+    directoryEntry->attributies = convertStringToInt16BitLittleEdian(tempEntryPoint.feild.attributies,\
     sizeof(tempEntryPoint.feild.attributies));
 
-    directoryEntry->resered = convertStringToIntLittleEdian(tempEntryPoint.feild.resered,\
+    directoryEntry->resered = convertStringToInt16BitLittleEdian(tempEntryPoint.feild.resered,\
     sizeof(tempEntryPoint.feild.resered));
 
-    directoryEntry->fileCreationTime = convertStringToIntLittleEdian(tempEntryPoint.feild.fileCreationTime,\
+    directoryEntry->fileCreationTime = convertStringToInt16BitLittleEdian(tempEntryPoint.feild.fileCreationTime,\
     sizeof(tempEntryPoint.feild.fileCreationTime));
 
-    directoryEntry->modifedTime = convertStringToIntLittleEdian(tempEntryPoint.feild.modifedTime,\
+    directoryEntry->modifedTime = convertStringToInt16BitLittleEdian(tempEntryPoint.feild.modifedTime,\
     sizeof(tempEntryPoint.feild.modifedTime));
 
-    directoryEntry->modifiedDate = convertStringToIntLittleEdian(tempEntryPoint.feild.modifiedDate,\
+    directoryEntry->modifiedDate = convertStringToInt16BitLittleEdian(tempEntryPoint.feild.modifiedDate,\
     sizeof(tempEntryPoint.feild.modifiedDate));
 
-    directoryEntry->startingCluster = convertStringToIntLittleEdian(tempEntryPoint.feild.startingCluster,\
+    directoryEntry->startingCluster = convertStringToInt16BitLittleEdian(tempEntryPoint.feild.startingCluster,\
     sizeof(tempEntryPoint.feild.startingCluster));
 
-    directoryEntry->fileSize = convertStringToIntLittleEdian(tempEntryPoint.feild.fileSize,\
+    directoryEntry->fileSize = convertStringToInt32BitLittleEdian(tempEntryPoint.feild.fileSize,\
     sizeof(tempEntryPoint.feild.fileSize));
 }
 
@@ -362,9 +373,69 @@ static stackNode* createStackNode(const directoryEntrypointReal* thisDirEntry)
 
 void pushStack(managerLinkedList* manager, directoryEntrypointReal* thisDirEntry)
 {
-    //stackNode* thisNode = createStackNode();
+    stackNode* thisNode = createStackNode(thisDirEntry);
     if (0 == manager->cnt)
     {
         manager->head = thisDirEntry;
+        manager->tail = thisDirEntry;
     }
+    else
+    {
+        manager->tail->next = thisNode;
+        manager->tail = thisNode;
+    }
+    manager->cnt += 1;
+}
+
+void popStack(managerLinkedList* manager)
+{
+    stackNode* temp = manager->head;
+    if(0 == manager->cnt)
+    {
+
+    }
+    else if (1 == manager->cnt)
+    {
+        free(manager->head);
+        manager->head = NULL;
+        manager->tail = NULL;
+        manager->cnt -= 1;
+    }
+    else if (1 < manager->cnt)
+    {
+        while(manager->tail != temp->next)
+        {
+            temp = temp->next;
+        }
+        manager->tail = temp;
+        free(temp->next);
+        manager->cnt -= 1;
+    }
+}
+
+void printThePathOfCurrentFolder(const managerLinkedList* manager)
+{
+    stackNode* temp = manager->head;
+    uint32_t count = manager->cnt;
+    uint32_t i = 0;
+    printf("\n/");
+    while(0 != count)
+    {
+        for(i = 0; i < 11; i++)
+        {
+            if ((65 <= temp->data.nameOfFile[i] && 90 >= temp->data.nameOfFile[i])\
+            ||  (48 <= temp->data.nameOfFile[i] && 57 >= temp->data.nameOfFile[i]))
+            {
+                printf("%c",temp->data.nameOfFile[i]);
+            }
+        }
+        count -= 1;
+        if (0 != count)
+        {
+            printf("/");
+            temp = temp->next;
+        }
+    }
+    printf(":~$ ");
+
 }

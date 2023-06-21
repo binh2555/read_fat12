@@ -6,7 +6,7 @@
 #define SIZE_OF_OEM                (8U)
 #define SIZE_OF_SIG                (2U)
 #define SIZE_OF_TEMP_ARR           (3U)
-#define EIGHT_BIT                  (8U)
+#define ONE_BYTE                   (8U)
 #define BOOT_SETOR_BEGIN           (0U)
 #define BYTE_PER_ENTRY             (32U)
 #define BIT_PER_ENTRY_FAT          (12U)
@@ -126,6 +126,11 @@ void createFatTable(uint16_t* FatEntry, uint32_t numOfFatEntry, const bootSector
 
 void browserSubDirectoy(directoryEntrypointReal* directoryEntry,const uint16_t* fatEntry, const bootSectorInfor* bootSectorInformation);
 void showContentOfFile(const directoryEntrypointReal* thisFileEntry,const bootSectorInfor* bootSectorInformation);
+
+
 void pushStack(managerLinkedList* manager, directoryEntrypointReal* thisDirEntry);
+void popStack(managerLinkedList* manager);
+
+void printThePathOfCurrentFolder(const managerLinkedList* manager);
 
 #endif    /* _FAT12_LIB_H_ */
