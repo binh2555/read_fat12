@@ -6,6 +6,7 @@
 #define SIZE_OF_OEM                (8U)
 #define SIZE_OF_SIG                (2U)
 #define SIZE_OF_TEMP_ARR           (3U)
+#define SIZE_OF_NAME_FOLDER        (11U)
 #define ONE_BYTE                   (8U)
 #define BOOT_SETOR_BEGIN           (0U)
 #define BYTE_PER_ENTRY             (32U)
@@ -121,6 +122,9 @@ bootSectorInfor getInformationBootSector(void);
 void printString(const uint8_t* str, uint32_t length);
 void strcopy(const uint8_t* str, uint8_t* storeStr,uint32_t length);
 void strcopy2(const uint8_t* str, uint8_t* storeStr,uint32_t length, uint32_t position);
+uint32_t strlenByNewline(const uint8_t* str);
+void printStringByNewline(const uint8_t* str);
+void printfStringByNewline(const uint8_t* str);
 void createRootDirectory(directoryEntrypointReal* directoryEntry, uint32_t numOfEntryPoint, const bootSectorInfor* FatInfor);
 void createFatTable(uint16_t* FatEntry, uint32_t numOfFatEntry, const bootSectorInfor* FatInfor);
 
@@ -132,5 +136,11 @@ void pushStack(managerLinkedList* manager, directoryEntrypointReal* thisDirEntry
 void popStack(managerLinkedList* manager);
 
 void printThePathOfCurrentFolder(const managerLinkedList* manager);
+
+int8_t findFolderInSubDir(/*directoryEntrypointReal* directoryEntry,*/const uint16_t* fatEntry, const bootSectorInfor* bootSectorInformation\
+                  ,const uint8_t* nameFolder, managerLinkedList* manager);
+int8_t findFolderInRootDir(directoryEntrypointReal* rootDirEntry, uint32_t numOfRootEntry, const uint8_t* nameFolder\
+                           ,const bootSectorInfor* bootSectorInformation, managerLinkedList* manager);
+
 
 #endif    /* _FAT12_LIB_H_ */

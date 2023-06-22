@@ -13,6 +13,7 @@ static void printTime(const directoryEntrypointReal* thisEntry);
 static void printSizeOfFile(const directoryEntrypointReal* thisEntry);
 static stackNode* createStackNode(const directoryEntrypointReal* thisDirEntry);
 static void copyEntryIntoStackNode(stackNode* thisNode, const directoryEntrypointReal* thisDirEntry);
+static int8_t cmpNameFolder(const uint8_t* nameFolder, const uint8_t* nameFind);
 
 
 bootSectorInfor getInformationBootSector(void)
@@ -376,8 +377,8 @@ void pushStack(managerLinkedList* manager, directoryEntrypointReal* thisDirEntry
     stackNode* thisNode = createStackNode(thisDirEntry);
     if (0 == manager->cnt)
     {
-        manager->head = thisDirEntry;
-        manager->tail = thisDirEntry;
+        manager->head = thisNode;
+        manager->tail = thisNode;
     }
     else
     {
@@ -396,7 +397,7 @@ void popStack(managerLinkedList* manager)
     }
     else if (1 == manager->cnt)
     {
-        free(manager->head);
+        free(temp);
         manager->head = NULL;
         manager->tail = NULL;
         manager->cnt -= 1;
@@ -438,4 +439,121 @@ void printThePathOfCurrentFolder(const managerLinkedList* manager)
     }
     printf(":~$ ");
 
+}
+
+int8_t findFolderInSubDir(/*directoryEntrypointReal* directoryEntry,*/const uint16_t* fatEntry, const bootSectorInfor* bootSectorInformation\
+                  ,const uint8_t* nameFolder, managerLinkedList* manager)
+{
+    int8_t returnFlag = -2;
+    uint8_t stopFlag = IS_RESUM;
+    uint32_t index = manager->tail->data.startingCluster;
+    uint32_t i = 0;
+    uint32_t numOfDirectoryEntry = (bootSectorInformation->secPerClus * bootSectorInformation->bytePerSec) / (BYTE_PER_ENTRY);
+    directoryEntrypointDisk tempDirectoryDisk;
+    directoryEntrypointReal tempDirectoryReal;
+    uint32_t readPoint = 0;
+
+    while(IS_RESUM == stopFlag)
+    {
+        for (i = 2; i < numOfDirectoryEntry; i ++)
+        {
+            readPoint = (bootSectorInformation->beginingOfDataRegion + ((index-2) * bootSectorInformation->secPerClus)) * bootSectorInformation->bytePerSec;
+            HAL_ReadByte( readPoint + (i * BYTE_PER_ENTRY), BYTE_PER_ENTRY, tempDirectoryDisk.entryPointData);
+            copyDirectoryEntry(tempDirectoryDisk, &tempDirectoryReal);
+            if (2 == cmpNameFolder(tempDirectoryReal.nameOfFile, nameFolder))
+            {
+                pushStack(manager, &tempDirectoryReal);
+                stopFlag = IS_STOP;
+                i = numOfDirectoryEntry;
+                returnFlag = 4;
+            }
+        }
+        if ((0x00  == fatEntry[index])\
+        || ((0xff0 <= fatEntry[index]) && (0xff6 >= fatEntry[index]))\
+        || ((0xff8 <= fatEntry[index]) && (0xfff >= fatEntry[index]))\
+        || ( 0xff7 == fatEntry[index]))
+        {
+            stopFlag = IS_STOP;
+        }
+        else
+        {
+            index = fatEntry[index];
+        }
+    }
+    return returnFlag;
+}
+
+int8_t findFolderInRootDir(directoryEntrypointReal* rootDirEntry, uint32_t numOfRootEntry, const uint8_t* nameFolder\
+                           ,const bootSectorInfor* bootSectorInformation, managerLinkedList* manager)
+{
+    int8_t returnFlag = -2;
+    uint32_t i = 0;
+    for (i = 0; i < numOfRootEntry; i++)
+    {
+        if (2 == cmpNameFolder(rootDirEntry[i].nameOfFile, nameFolder))
+        {
+            pushStack(manager, &rootDirEntry[i]);
+            returnFlag = 4;
+            i = numOfRootEntry;
+        }
+    }
+    return returnFlag;
+}
+
+static int8_t cmpNameFolder(const uint8_t* nameFolder, const uint8_t* nameFind)
+{
+    uint8_t returnValue = -1;
+    uint32_t i = 0;
+    uint32_t fineNameLength = strlenByNewline(nameFind);
+    uint32_t count = 0;
+    if (fineNameLength > SIZE_OF_NAME_FOLDER)
+    {
+        returnValue = -1;
+    }
+    else
+    {
+        for (i = 0; i < fineNameLength; i++)
+        {
+            if (nameFind[i] == nameFolder[i])
+            {
+                count += 1;
+            }
+        }
+    }
+    if (count == (fineNameLength))
+    {
+        returnValue = 2;
+    }
+    return returnValue;
+}
+
+uint32_t strlenByNewline(const uint8_t* str)
+{
+    uint32_t count = 0;
+    while('\n' != str[count])
+    {
+        count++;
+    }
+    return count;
+}
+
+void printStringByNewline(const uint8_t* str)
+{
+    uint32_t count = 0;
+    while('\n' != str[count])
+    {
+        printf("%c",str[count]);
+        count++;
+    }
+}
+
+void printfStringByNewline(const uint8_t* str)
+{
+    uint32_t count = 0;
+    while('\n' != str[count])
+    {
+        printf("%c",str[count]);
+        count++;
+    }
+    printf("\n");
 }

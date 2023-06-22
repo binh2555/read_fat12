@@ -1,6 +1,8 @@
 #include "main.h"
 
 
+
+
 int main(void)
 {
     uint8_t statusFlag = IS_RESUM;
@@ -10,44 +12,79 @@ int main(void)
 	directoryEntrypointReal rootDirEntry[numOfDirEntry];
 	uint16_t FatEntry[NumOfFatEntry];
 	managerLinkedList manager = {NULL, NULL, 0};
-
 	uint8_t userSelection[MAX_USER_SELECTION];
-	memset(userSelection, 0, sizeof(userSelection));
+	uint8_t subBuff[MAX_USER_SELECTION];
+	int8_t findFolderStatus = 0;
 
 	createRootDirectory(rootDirEntry, numOfDirEntry, &bootSectorInformation);
 	createFatTable(FatEntry, NumOfFatEntry, &bootSectorInformation);
 
-	//browserRootDirectory(rootEntryPoint, numOfDirEntry);
-	//browserSubDirectoy(&rootEntryPoint[10], &FatEntry, &bootSectorInformation);
+	browserRootDirectory(rootDirEntry, numOfDirEntry);
+	//browserSubDirectoy(&rootDirEntry[10], &FatEntry, &bootSectorInformation);
+	//browserSubDirectoy(&(manager.tail->data), &FatEntry, &bootSectorInformation);
 
-    //pushStack(&manager, &rootEntryPoint[9]);
-    //browserSubDirectoy(&(manager.tail->data), &FatEntry, &bootSectorInformation);
-
-    int o = 0;
     while (IS_RESUM == statusFlag)
     {
-        o++;
         printThePathOfCurrentFolder(&manager);
 
+        memset(userSelection, 0, sizeof(userSelection));
         fflush(stdin);
         fgets(userSelection, sizeof(userSelection), stdin);
-        if (0 == manager.cnt)
+        if (   'c'  == userSelection[0]\
+            && 'd'  == userSelection[1]\
+            && ' '  == userSelection[2]\
+            && '.'  != userSelection[3])
         {
-            browserRootDirectory(rootDirEntry, numOfDirEntry);
+            strcopy2(userSelection, subBuff, (strlenByNewline(userSelection) - 2), 3);
+            if (0 == manager.cnt)
+            {
+                findFolderStatus = findFolderInRootDir(&rootDirEntry, numOfDirEntry, subBuff,&bootSectorInformation, &manager);
+            }
+            else
+            {
+                findFolderStatus = findFolderInSubDir(&FatEntry, &bootSectorInformation, subBuff, &manager);
+            }
+            if (4 != findFolderStatus)
+            {
+                printStringByNewline(subBuff);
+                printf(" : not found");
+            }
         }
-
-        pushStack(&manager, &rootDirEntry[9]);
-        if (o % 2 == 0)
+        else if (   'l'  == userSelection[0]\
+                 && 's'  == userSelection[1]\
+                 && '\n' == userSelection[2])
+        {
+            if (0 == manager.cnt)
+            {
+                browserRootDirectory(&rootDirEntry, numOfDirEntry);
+            }
+            else
+            {
+                browserSubDirectoy(&(manager.tail->data), &FatEntry, &bootSectorInformation);
+            }
+        }
+        else if (   'c' == userSelection[0]\
+                 && 'd' == userSelection[1]\
+                 && ' ' == userSelection[2]\
+                 && '.' == userSelection[3]\
+                 && '.' == userSelection[4]\
+                 && '\n'== userSelection[5])
         {
             popStack(&manager);
         }
-
-        if (4 == manager.cnt)
+        else
         {
-            browserSubDirectoy(&(manager.tail->data), &FatEntry, &bootSectorInformation);
+            printStringByNewline(userSelection);
+            printf(" : not found!!!");
         }
 
     }
 
 	return 0;
+}
+
+
+void getNameFolder(const uint8_t* userCommand, uint8_t* buff, uint32_t position)
+{
+    strcopy2(userCommand, buff, strlenByNewline(userCommand) - 2, position);
 }
